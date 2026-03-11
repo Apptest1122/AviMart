@@ -1,250 +1,141 @@
 const CACHE_NAME = 'avimart-v1';
-const API_CACHE_NAME = 'avimart-api-v1';
-const STATIC_CACHE_NAME = 'avimart-static-v1';
+const STATIC_CACHE = 'avimart-static-v1';
+const API_CACHE = 'avimart-api-v1';
 
-// Assets to cache on install
+// Assets to cache
 const STATIC_ASSETS = [
-  './',
-  './index.html',
-  './admin.html',
-  './manifest.json',
-  'https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap',
-  'https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0,0',
-  'https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxKKTU1Kg.woff2',
-  'https://fonts.gstatic.com/s/materialiconsrounded/v112/LDItaoyNOAY6Uewc665JcIzCKsKc_M9flwmPq_HTTw.woff2',
+  '/',
+  '/index.html',
+  '/manifest.json',
+  'https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap',
+  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css',
   'https://i.ibb.co/F4Pf08KK/15298-removebg-preview-1.png'
 ];
 
-// Firebase API endpoints to cache
-const API_ENDPOINTS = [
-  'https://avimart-3264c-default-rtdb.firebaseio.com/products.json',
-  'https://avimart-3264c-default-rtdb.firebaseio.com/categories.json'
-];
-
-// Install event - cache static assets
+// Install Event
 self.addEventListener('install', event => {
-  console.log('[Service Worker] Installing Service Worker...');
-  
+  console.log('[SW] Installing...');
   event.waitUntil(
-    caches.open(STATIC_CACHE_NAME)
+    caches.open(STATIC_CACHE)
       .then(cache => {
-        console.log('[Service Worker] Caching static assets');
+        console.log('[SW] Caching static assets');
         return cache.addAll(STATIC_ASSETS);
       })
-      .then(() => {
-        console.log('[Service Worker] Skip waiting on install');
-        return self.skipWaiting();
-      })
+      .then(() => self.skipWaiting())
   );
 });
 
-// Activate event - clean up old caches
+// Activate Event
 self.addEventListener('activate', event => {
-  console.log('[Service Worker] Activating Service Worker...');
-  
+  console.log('[SW] Activating...');
   event.waitUntil(
-    caches.keys().then(keyList => {
-      return Promise.all(keyList.map(key => {
-        if (key !== STATIC_CACHE_NAME && key !== API_CACHE_NAME && key !== CACHE_NAME) {
-          console.log('[Service Worker] Removing old cache:', key);
-          return caches.delete(key);
-        }
-      }));
-    })
-    .then(() => {
-      console.log('[Service Worker] Claiming clients');
-      return self.clients.claim();
-    })
+    Promise.all([
+      caches.keys().then(keys => {
+        return Promise.all(
+          keys.filter(key => key !== STATIC_CACHE && key !== API_CACHE)
+            .map(key => caches.delete(key))
+        );
+      }),
+      self.clients.claim()
+    ])
   );
 });
 
-// Helper: Check if request is for an API
-function isApiRequest(url) {
-  return url.includes('firebaseio.com') || 
-         url.includes('imgbb.com') ||
-         url.includes('maps.google.com');
-}
-
-// Helper: Check if request is for a static asset
-function isStaticAsset(url) {
-  return STATIC_ASSETS.some(asset => url.includes(asset)) ||
-         url.includes('fonts.googleapis') ||
-         url.includes('fonts.gstatic') ||
-         url.includes('i.ibb.co') ||
-         url.includes('via.placeholder.com');
-}
-
-// Helper: Network with cache fallback (stale-while-revalidate for API)
-async function networkFirstWithCache(request, cacheName = API_CACHE_NAME) {
-  try {
-    // Try network first
-    const networkResponse = await fetch(request);
-    
-    // If successful, update cache
-    if (networkResponse && networkResponse.status === 200) {
-      const cache = await caches.open(cacheName);
-      cache.put(request, networkResponse.clone());
-    }
-    
-    return networkResponse;
-  } catch (error) {
-    // If network fails, try cache
-    console.log('[Service Worker] Network failed, trying cache for:', request.url);
-    const cachedResponse = await caches.match(request);
-    
-    if (cachedResponse) {
-      return cachedResponse;
-    }
-    
-    // If no cache, return offline fallback
-    return new Response(JSON.stringify({ 
-      error: 'You are offline. Please check your connection.',
-      offline: true 
-    }), {
-      status: 503,
-      headers: { 'Content-Type': 'application/json' }
-    });
-  }
-}
-
-// Helper: Cache first for static assets
-async function cacheFirstWithNetwork(request) {
-  const cachedResponse = await caches.match(request);
-  
-  if (cachedResponse) {
-    // Return cached response and update cache in background
-    fetch(request).then(networkResponse => {
-      if (networkResponse && networkResponse.status === 200) {
-        caches.open(STATIC_CACHE_NAME).then(cache => {
-          cache.put(request, networkResponse);
-        });
-      }
-    }).catch(() => {});
-    
-    return cachedResponse;
-  }
-  
-  // If not in cache, fetch from network
-  try {
-    const networkResponse = await fetch(request);
-    if (networkResponse && networkResponse.status === 200) {
-      const cache = await caches.open(STATIC_CACHE_NAME);
-      cache.put(request, networkResponse.clone());
-    }
-    return networkResponse;
-  } catch (error) {
-    return new Response('Offline - Content not available', { status: 503 });
-  }
-}
-
-// Fetch event - handle different request types
+// Fetch Event - Network First, Cache Fallback
 self.addEventListener('fetch', event => {
-  const url = event.request.url;
+  const url = new URL(event.request.url);
   
-  // Skip non-GET requests
-  if (event.request.method !== 'GET') {
+  // API requests (Firebase)
+  if (url.hostname.includes('firebaseio.com')) {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          // Cache successful API responses
+          if (response.status === 200) {
+            const cacheCopy = response.clone();
+            caches.open(API_CACHE)
+              .then(cache => cache.put(event.request, cacheCopy));
+          }
+          return response;
+        })
+        .catch(() => {
+          // Return cached API response if offline
+          return caches.match(event.request)
+            .then(cached => {
+              if (cached) {
+                return cached;
+              }
+              return new Response(
+                JSON.stringify({ error: 'offline', message: 'You are offline' }),
+                { headers: { 'Content-Type': 'application/json' } }
+              );
+            });
+        })
+    );
     return;
   }
   
-  // Handle API requests
-  if (isApiRequest(url)) {
-    event.respondWith(networkFirstWithCache(event.request, API_CACHE_NAME));
+  // Static assets - Cache First
+  if (event.request.url.includes('i.ibb.co') || 
+      event.request.url.includes('fonts.googleapis') ||
+      event.request.url.includes('cdnjs')) {
+    event.respondWith(
+      caches.match(event.request)
+        .then(cached => cached || fetch(event.request))
+    );
     return;
   }
   
-  // Handle static assets
-  if (isStaticAsset(url)) {
-    event.respondWith(cacheFirstWithNetwork(event.request));
-    return;
-  }
-  
-  // Default: network first with cache fallback
+  // HTML pages - Network First
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        // Cache successful responses
-        if (response && response.status === 200) {
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then(cache => {
-            cache.put(event.request, responseClone);
-          });
-        }
+        const responseClone = response.clone();
+        caches.open(CACHE_NAME)
+          .then(cache => cache.put(event.request, responseClone));
         return response;
       })
-      .catch(() => {
-        return caches.match(event.request).then(cached => {
-          if (cached) {
-            return cached;
-          }
-          // If offline and no cache, return offline page for navigation
-          if (event.request.mode === 'navigate') {
-            return caches.match('./index.html');
-          }
-          return new Response('Offline', { status: 503 });
-        });
-      })
+      .catch(() => caches.match(event.request))
   );
 });
 
-// Background sync for offline actions
+// Background Sync
 self.addEventListener('sync', event => {
+  console.log('[SW] Background sync:', event.tag);
   if (event.tag === 'sync-orders') {
-    console.log('[Service Worker] Syncing offline orders');
-    event.waitUntil(syncOfflineOrders());
+    event.waitUntil(syncOrders());
   }
 });
 
-// Function to sync offline orders when back online
-async function syncOfflineOrders() {
+async function syncOrders() {
   try {
-    const db = await openOfflineDB();
-    const offlineOrders = await db.getAll('offlineOrders');
+    const cache = await caches.open(API_CACHE);
+    const requests = await cache.keys();
     
-    for (const order of offlineOrders) {
-      try {
-        const response = await fetch('https://avimart-3264c-default-rtdb.firebaseio.com/orders.json', {
-          method: 'POST',
-          body: JSON.stringify(order),
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (response.ok) {
-          await db.delete('offlineOrders', order.id);
+    for (const request of requests) {
+      if (request.url.includes('orders')) {
+        const response = await cache.match(request);
+        if (response) {
+          const order = await response.json();
+          // Try to send to server
+          await fetch(request.url, {
+            method: 'POST',
+            body: JSON.stringify(order),
+            headers: { 'Content-Type': 'application/json' }
+          });
+          // Delete from cache after successful sync
+          await cache.delete(request);
         }
-      } catch (error) {
-        console.error('[Service Worker] Failed to sync order:', error);
       }
     }
   } catch (error) {
-    console.error('[Service Worker] Sync failed:', error);
+    console.log('[SW] Sync failed:', error);
   }
 }
 
-// IndexedDB helper for offline storage
-async function openOfflineDB() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open('AviMartOffline', 1);
-    
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve(request.result);
-    
-    request.onupgradeneeded = event => {
-      const db = event.target.result;
-      if (!db.objectStoreNames.contains('offlineOrders')) {
-        db.createObjectStore('offlineOrders', { keyPath: 'id' });
-      }
-      if (!db.objectStoreNames.contains('offlineCart')) {
-        db.createObjectStore('offlineCart', { keyPath: 'id' });
-      }
-    };
-  });
-}
-
-// Push notification event
+// Push Notification
 self.addEventListener('push', event => {
-  console.log('[Service Worker] Push received:', event);
+  console.log('[SW] Push received');
   
   const options = {
     body: event.data.text(),
@@ -252,7 +143,7 @@ self.addEventListener('push', event => {
     badge: 'https://i.ibb.co/F4Pf08KK/15298-removebg-preview-1.png',
     vibrate: [200, 100, 200],
     data: {
-      url: self.location.origin + '/index.html'
+      url: self.location.origin
     },
     actions: [
       {
@@ -271,13 +162,11 @@ self.addEventListener('push', event => {
   );
 });
 
-// Notification click event
+// Notification Click
 self.addEventListener('notificationclick', event => {
-  console.log('[Service Worker] Notification click:', event);
-  
   event.notification.close();
   
-  if (event.action === 'open' || !event.action) {
+  if (event.action === 'open') {
     event.waitUntil(
       clients.openWindow(event.notification.data.url)
     );
