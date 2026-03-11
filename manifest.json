@@ -1,17 +1,24 @@
 {
   "name": "AviMart – Smart Shopping Everyday",
   "short_name": "AviMart",
-  "description": "Smart shopping app for your daily needs. Shop electronics, fashion, home essentials and more with best deals.",
+  "description": "India's most loved smart shopping app. Shop electronics, fashion, home essentials with best deals & COD.",
   "start_url": "/index.html",
   "display": "standalone",
-  "background_color": "#2874F0",
-  "theme_color": "#2874F0",
+  "background_color": "#6366f1",
+  "theme_color": "#4f46e5",
   "orientation": "portrait",
   "scope": "/",
   "categories": ["shopping", "lifestyle", "ecommerce"],
-  "lang": "en",
+  "lang": "en-IN",
   "dir": "ltr",
+  
   "icons": [
+    {
+      "src": "https://i.ibb.co/F4Pf08KK/15298-removebg-preview-1.png",
+      "sizes": "48x48",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
     {
       "src": "https://i.ibb.co/F4Pf08KK/15298-removebg-preview-1.png",
       "sizes": "72x72",
@@ -61,21 +68,23 @@
       "purpose": "any maskable"
     }
   ],
-  "splash_pages": null,
-  "prefer_related_applications": false,
+  
+  "screenshots": [
+    {
+      "src": "https://i.ibb.co/F4Pf08KK/15298-removebg-preview-1.png",
+      "sizes": "480x800",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Home Screen"
+    }
+  ],
+  
   "shortcuts": [
     {
       "name": "Home",
       "short_name": "Home",
       "description": "Go to home page",
       "url": "/index.html#home",
-      "icons": [{ "src": "https://i.ibb.co/F4Pf08KK/15298-removebg-preview-1.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Orders",
-      "short_name": "Orders",
-      "description": "View your orders",
-      "url": "/index.html#orders",
       "icons": [{ "src": "https://i.ibb.co/F4Pf08KK/15298-removebg-preview-1.png", "sizes": "192x192" }]
     },
     {
@@ -86,11 +95,25 @@
       "icons": [{ "src": "https://i.ibb.co/F4Pf08KK/15298-removebg-preview-1.png", "sizes": "192x192" }]
     },
     {
+      "name": "Orders",
+      "short_name": "Orders",
+      "description": "Track your orders",
+      "url": "/index.html#orders",
+      "icons": [{ "src": "https://i.ibb.co/F4Pf08KK/15298-removebg-preview-1.png", "sizes": "192x192" }]
+    },
+    {
       "name": "Profile",
       "short_name": "Profile",
-      "description": "Your profile",
+      "description": "Your account",
       "url": "/index.html#profile",
       "icons": [{ "src": "https://i.ibb.co/F4Pf08KK/15298-removebg-preview-1.png", "sizes": "192x192" }]
     }
-  ]
+  ],
+  
+  "prefer_related_applications": false,
+  "related_applications": [],
+  "display_override": ["standalone", "fullscreen"],
+  "handle_links": "preferred",
+  "edge_side_panel": {},
+  "file_handlers": []
 }
