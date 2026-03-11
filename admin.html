@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AviMart Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0,0" />
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; font-family:'Roboto',sans-serif; }
+    body { background:#F1F3F6; padding:16px; }
+    .admin-container { max-width:480px; margin:0 auto; background:white; border-radius:32px; padding:20px; box-shadow:0 10px 30px #00000015; }
+    h2 { color:#2874F0; margin:16px 0; }
+    input, select, textarea, button { width:100%; padding:14px; margin:8px 0; border-radius:30px; border:1px solid #ddd; font-size:1rem; }
+    button { background:#2874F0; color:white; font-weight:600; border:none; }
+    .section { background:#f5f5f5; border-radius:24px; padding:16px; margin:24px 0; }
+    .row { display:flex; gap:10px; align-items:center; }
+    .card { background:white; border-radius:16px; padding:12px; margin:12px 0; box-shadow:0 2px 6px #0000000a; }
+    .img-thumb { width:60px; height:60px; background:#ccc; border-radius:12px; }
+    .flex { display:flex; gap:12px; align-items:center; }
+  </style>
+</head>
+<body>
+<div class="admin-container">
+  <h1 style="font-size:1.8rem;">🛠️ AviMart Admin</h1>
+  <div id="adminAuth">
+    <h2>Admin Login</h2>
+    <input type="email" id="adminEmail" placeholder="Email">
+    <input type="password" id="adminPass" placeholder="Password">
+    <button id="adminLoginBtn">Login</button>
+  </div>
+
+  <div id="adminPanel" style="display:none;">
+    <button id="logoutAdmin">Logout</button>
+    
+    <div class="section">
+      <h3>➕ Add Category</h3>
+      <input type="text" id="catName" placeholder="Category name">
+      <button id="addCategoryBtn">Add category</button>
+    </div>
+
+    <div class="section">
+      <h3>📦 Add Product</h3>
+      <input type="text" id="prodName" placeholder="Product name">
+      <input type="number" id="prodPrice" placeholder="Price">
+      <input type="text" id="prodDiscount" placeholder="Discount %">
+      <select id="prodCategory"></select>
+      <input type="text" id="prodImageUrl" placeholder="Image URL (or use ImgBB)">
+      <button id="uploadImgBB">Upload to ImgBB</button>
+      <button id="addProductBtn">Add product</button>
+    </div>
+
+    <div class="section">
+      <h3>📋 Orders & Tracking</h3>
+      <div id="ordersList"></div>
+    </div>
+
+    <div class="section">
+      <h3>📱 Update Admin WhatsApp</h3>
+      <input type="text" id="waNumber" placeholder="WhatsApp number with country code">
+      <button id="updateWA">Update</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyC7LQIiwUkr-bwIWoPkEL4J1IJLkmqIv9U",
+    authDomain: "avimart-3264c.firebaseapp.com",
+    databaseURL: "https://avimart-3264c-default-rtdb.firebaseio.com",
+    projectId: "avimart-3264c",
+    storageBucket: "avimart-3264c.firebasestorage.app",
+    messagingSenderId: "445593457856",
+    appId: "1:445593457856:web:ebc565a85c8eecf58c4925"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.database();
+  const imgbbKey = 'd168143e8512af5b9298b379acd7bd67';
+
+  const adminPanel = document.getElementById('adminPanel');
+  const adminAuth = document.getElementById('adminAuth');
+
+  auth.onAuthStateChanged(user => {
+    if (user) { adminAuth.style.display = 'none'; adminPanel.style.display = 'block'; loadOrders(); loadCategories(); }
+    else { adminAuth.style.display = 'block'; adminPanel.style.display = 'none'; }
+  });
+
+  document.getElementById('adminLoginBtn').addEventListener('click', ()=>{
+    const email = document.getElementById('adminEmail').value;
+    const pass = document.getElementById('adminPass').value;
+    auth.signInWithEmailAndPassword(email, pass).catch(err=>alert(err.message));
+  });
+
+  document.getElementById('logoutAdmin').addEventListener('click', ()=> auth.signOut());
+
+  // load categories dropdown
+  function loadCategories() {
+    const sel = document.getElementById('prodCategory');
+    db.ref('categories').on('value', snap => {
+      sel.innerHTML = '<option>Select category</option>';
+      snap.forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat.key;
+        opt.textContent = cat.val().name;
+        sel.appendChild(opt);
+      });
+    });
+  }
+
+  document.getElementById('addCategoryBtn').addEventListener('click', ()=>{
+    const name = document.getElementById('catName').value;
+    if(name) db.ref('categories').push({name});
+  });
+
+  // ImgBB upload
+  document.getElementById('uploadImgBB').addEventListener('click', ()=>{
+    const url = document.getElementById('prodImageUrl').value;
+    if(!url) return alert('enter image url');
+    fetch(`https://api.imgbb.com/1/upload?key=${imgbbKey}`, {
+      method: 'POST',
+      body: new URLSearchParams({ image: url })
+    }).then(res=>res.json()).then(data=>{
+      if(data.data.url) document.getElementById('prodImageUrl').value = data.data.url;
+    }).catch(()=>alert('upload failed'));
+  });
+
+  document.getElementById('addProductBtn').addEventListener('click', ()=>{
+    const name = document.getElementById('prodName').value;
+    const price = document.getElementById('prodPrice').value;
+    const discount = document.getElementById('prodDiscount').value;
+    const cat = document.getElementById('prodCategory').value;
+    const img = document.getElementById('prodImageUrl').value;
+    if(!name || !price || !cat) return alert('fill required');
+    db.ref('products').push({ name, price, discount, category:cat, image:img || 'https://via.placeholder.com/200' });
+  });
+
+  // load orders with tracking update
+  function loadOrders() {
+    const ordersDiv = document.getElementById('ordersList');
+    db.ref('orders').on('value', snap => {
+      ordersDiv.innerHTML = '';
+      snap.forEach(orderSnap => {
+        const o = orderSnap.val();
+        const div = document.createElement('div');
+        div.className = 'card';
+        div.innerHTML = `
+          <div><b>${o.product}</b> ₹${o.price} <br> Status: ${o.status || 'placed'}</div>
+          <div class="flex">
+            <input id="status-${orderSnap.key}" value="${o.status || ''}" placeholder="status">
+            <input id="courier-${orderSnap.key}" value="${o.courier || ''}" placeholder="courier">
+            <input id="trackId-${orderSnap.key}" value="${o.trackingId || ''}" placeholder="tracking ID">
+            <input id="trackLink-${orderSnap.key}" value="${o.trackingLink || ''}" placeholder="track link">
+          </div>
+          <button onclick="updateOrder('${orderSnap.key}')">Update tracking</button>
+        `;
+        ordersDiv.appendChild(div);
+      });
+    });
+  }
+  window.updateOrder = (key) => {
+    const status = document.getElementById(`status-${key}`).value;
+    const courier = document.getElementById(`courier-${key}`).value;
+    const trackingId = document.getElementById(`trackId-${key}`).value;
+    const trackingLink = document.getElementById(`trackLink-${key}`).value;
+    db.ref('orders/'+key).update({ status, courier, trackingId, trackingLink });
+  };
+
+  document.getElementById('updateWA').addEventListener('click', ()=>{
+    const wa = document.getElementById('waNumber').value;
+    if(wa) db.ref('settings/adminWhatsApp').set(wa);
+  });
+</script>
+</body>
+</html>

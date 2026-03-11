@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>AviMart – Smart Shopping Everyday</title>
+  <!-- Material Icons & Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0,0" />
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Roboto', sans-serif;
+    }
+    body {
+      background-color: #F1F3F6;
+      overflow-x: hidden;
+      -webkit-tap-highlight-color: transparent;
+      overscroll-behavior: none;
+    }
+    /* Android fullscreen feel */
+    #app {
+      max-width: 480px;
+      margin: 0 auto;
+      background: white;
+      position: relative;
+      min-height: 100vh;
+      box-shadow: 0 0 30px rgba(0,0,0,0.1);
+      border-radius: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .page {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      background: #F1F3F6;
+      transition: opacity 0.2s ease;
+    }
+    .page.active {
+      display: flex;
+    }
+    /* splash screen */
+    #splash {
+      position: fixed;
+      top:0; left:0; width:100%; height:100%;
+      background: linear-gradient(145deg, #0d47a1, #1976d2, #42a5f5);
+      background-size: 200% 200%;
+      animation: gradientFlow 3s ease infinite;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      max-width:480px; left:50%; transform:translateX(-50%);
+      box-shadow: 0 0 30px #00000050;
+    }
+    @keyframes gradientFlow {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    .splash-content {
+      text-align: center;
+      color: white;
+      animation: fadeScaleIn 2s ease;
+    }
+    .splash-logo {
+      width: 130px;
+      height: auto;
+      filter: drop-shadow(0 8px 16px rgba(0,0,0,0.3));
+      animation: logoPop 1.8s infinite alternate;
+    }
+    @keyframes logoPop {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.08); }
+    }
+    .splash-title {
+      font-size: 2.5rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      margin-top: 16px;
+      text-shadow: 2px 4px 10px #00000030;
+    }
+    .splash-tagline {
+      font-size: 1.1rem;
+      opacity: 0.9;
+    }
+    .splash-footer {
+      position: absolute;
+      bottom: 30px;
+      font-size: 0.95rem;
+      text-align: center;
+      width: 100%;
+      color: #ffffffdd;
+      animation: fadeInUp 2s;
+    }
+    @keyframes fadeScaleIn {
+      0% { opacity:0; transform:scale(0.85); }
+      100% { opacity:1; transform:scale(1); }
+    }
+    @keyframes fadeInUp {
+      0% { opacity:0; transform:translateY(30px); }
+      100% { opacity:1; transform:translateY(0); }
+    }
+    /* header */
+    .header {
+      background-color: #2874F0;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: white;
+    }
+    .search-bar {
+      flex: 1;
+      background: white;
+      border-radius: 24px;
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #aaa;
+    }
+    .search-bar input {
+      border: none;
+      flex: 1;
+      outline: none;
+      font-size: 0.95rem;
+    }
+    .header-icons {
+      display: flex;
+      gap: 16px;
+    }
+    .header-icons span {
+      font-size: 26px;
+      color: white;
+    }
+    /* bottom navigation */
+    .bottom-nav {
+      background: white;
+      display: flex;
+      justify-content: space-around;
+      padding: 8px 0 4px;
+      border-top: 1px solid #e0e0e0;
+      box-shadow: 0 -2px 8px rgba(0,0,0,0.04);
+    }
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 12px;
+      color: #5e5e5e;
+      transition: 0.1s;
+      flex:1;
+    }
+    .nav-item.active {
+      color: #2874F0;
+      font-weight: 500;
+    }
+    .nav-item span {
+      font-size: 24px;
+    }
+    /* content container */
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding-bottom: 8px;
+      -webkit-overflow-scrolling: touch;
+    }
+    /* banner slider */
+    .banner-slider {
+      padding: 12px 0;
+      background: white;
+      margin-bottom: 8px;
+    }
+    .banner-img {
+      width: 100%;
+      height: 150px;
+      background: #e1f5fe;
+      border-radius: 12px;
+      margin: 0 16px;
+      background-image: url('https://via.placeholder.com/400x150/2874F0/white?text=AviMart+Deals');
+      background-size: cover;
+      background-position: center;
+      box-shadow: 0 3px 8px #0000001a;
+    }
+    /* category */
+    .category-scroll {
+      background: white;
+      padding: 16px;
+      display: flex;
+      gap: 20px;
+      overflow-x: auto;
+      white-space: nowrap;
+      scrollbar-width: none;
+      margin-bottom: 8px;
+    }
+    .category-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-size: 12px;
+      color: #212121;
+    }
+    .cat-circle {
+      width: 64px;
+      height: 64px;
+      background: #f0f0f0;
+      border-radius: 50%;
+      margin-bottom: 6px;
+      border: 2px solid #2874F0;
+    }
+    /* product grid */
+    .section-title {
+      padding: 16px 16px 8px;
+      font-weight: 600;
+      font-size: 1.2rem;
+      color: #212121;
+    }
+    .product-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      padding: 0 16px 16px;
+    }
+    .product-card {
+      background: white;
+      border-radius: 16px;
+      padding: 12px;
+      box-shadow: 0 3px 10px #0000000c;
+      transition: 0.15s;
+      position: relative;
+    }
+    .product-image {
+      width: 100%;
+      aspect-ratio: 1/1;
+      background: #eaeef2;
+      border-radius: 12px;
+      margin-bottom: 8px;
+      background-image: url('https://via.placeholder.com/200x200/cccccc/white?text=Product');
+      background-size: cover;
+    }
+    .product-title {
+      font-weight: 500;
+      font-size: 0.95rem;
+    }
+    .price {
+      font-weight: 700;
+      color: #212121;
+      margin: 6px 0 4px;
+    }
+    .discount {
+      color: #388e3c;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    .add-cart {
+      background: #FB641B;
+      color: white;
+      border: none;
+      border-radius: 24px;
+      padding: 8px 12px;
+      width: 100%;
+      font-weight: 600;
+      font-size: 0.85rem;
+      margin-top: 8px;
+      box-shadow: 0 2px 6px #fb641b70;
+    }
+    .wishlist-icon {
+      position: absolute;
+      top: 12px; right: 12px;
+      background: white;
+      border-radius: 50%;
+      width: 32px; height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 5px #0000001a;
+    }
+    /* auth screens */
+    .auth-container {
+      padding: 24px;
+      background: white;
+      min-height: 100%;
+    }
+    .auth-card {
+      background: white;
+      border-radius: 28px;
+      padding: 24px;
+      box-shadow: 0 10px 30px #00000015;
+    }
+    .auth-input {
+      width: 100%;
+      padding: 16px 18px;
+      border: 1px solid #e0e0e0;
+      border-radius: 30px;
+      margin: 8px 0;
+      font-size: 1rem;
+    }
+    .auth-btn {
+      background: #2874F0;
+      color: white;
+      border: none;
+      padding: 16px;
+      border-radius: 30px;
+      font-weight: 600;
+      font-size: 1rem;
+      width: 100%;
+      margin-top: 16px;
+    }
+    .auth-link {
+      color: #2874F0;
+      text-align: center;
+      margin-top: 20px;
+      display: block;
+    }
+    /* order tracking */
+    .track-card {
+      background: white;
+      margin: 16px;
+      padding: 16px;
+      border-radius: 20px;
+    }
+    .map-link {
+      background: #e3f2fd;
+      padding: 12px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 12px 0;
+    }
+    /* others */
+    .hidden { display: none; }
+    .flex { display: flex; }
+    .text-small { font-size: 0.85rem; color: #5e5e5e; }
+  </style>
+</head>
+<body>
+<div id="app">
+  <!-- SPLASH SCREEN -->
+  <div id="splash">
+    <div class="splash-content">
+      <img src="https://i.ibb.co/F4Pf08KK/15298-removebg-preview-1.png" class="splash-logo" alt="logo">
+      <div class="splash-title">AviMart</div>
+      <div class="splash-tagline">Smart Shopping Everyday</div>
+    </div>
+    <div class="splash-footer">
+      Development By Nitai Studio<br>Made in India 🇮🇳
+    </div>
+  </div>
+
+  <!-- LOGIN PAGE (default visible after splash) -->
+  <div id="login-page" class="page">
+    <div class="auth-container">
+      <div class="auth-card">
+        <h2 style="margin-bottom:24px;">Login to AviMart</h2>
+        <input type="email" id="loginEmail" placeholder="Email" class="auth-input">
+        <input type="password" id="loginPass" placeholder="Password" class="auth-input">
+        <button class="auth-btn" id="loginBtn">Login</button>
+        <div class="auth-link" id="goToSignup">Don't have account? Sign up</div>
+        <div class="auth-link" id="goToForgot">Forgot password?</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIGNUP PAGE -->
+  <div id="signup-page" class="page">
+    <div class="auth-container">
+      <div class="auth-card">
+        <h2 style="margin-bottom:24px;">Create account</h2>
+        <input type="text" id="fullName" placeholder="Full Name" class="auth-input">
+        <input type="email" id="signupEmail" placeholder="Email" class="auth-input">
+        <input type="text" id="masterMobile" placeholder="Master Mobile Number" class="auth-input">
+        <input type="password" id="signupPass" placeholder="Password" class="auth-input">
+        <input type="password" id="signupConfirm" placeholder="Confirm Password" class="auth-input">
+        <button class="auth-btn" id="signupBtn">Sign Up</button>
+        <div class="auth-link" id="backToLogin">Back to login</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FORGOT PASSWORD -->
+  <div id="forgot-page" class="page">
+    <div class="auth-container">
+      <div class="auth-card">
+        <h2 style="margin-bottom:24px;">Reset password</h2>
+        <input type="email" id="resetEmail" placeholder="Your email" class="auth-input">
+        <button class="auth-btn" id="resetBtn">Send reset link</button>
+        <div class="auth-link" id="backToLoginFromForgot">Back to login</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN APP HOME (after login) -->
+  <div id="home-page" class="page">
+    <div class="header">
+      <div class="search-bar"><span class="material-symbols-rounded">search</span><input placeholder="Search AviMart..."></div>
+      <div class="header-icons"><span class="material-symbols-rounded">shopping_cart</span><span class="material-symbols-rounded">favorite</span></div>
+    </div>
+    <div class="content">
+      <div class="banner-slider"><div class="banner-img"></div></div>
+      <div class="category-scroll">
+        <div class="category-item"><div class="cat-circle"></div><span>Electronics</span></div>
+        <div class="category-item"><div class="cat-circle"></div><span>Fashion</span></div>
+        <div class="category-item"><div class="cat-circle"></div><span>Home</span></div>
+        <div class="category-item"><div class="cat-circle"></div><span>Beauty</span></div>
+      </div>
+      <div class="section-title">Deals of the day</div>
+      <div class="product-grid" id="productGrid">
+        <!-- dynamically loaded -->
+      </div>
+    </div>
+    <div class="bottom-nav">
+      <div class="nav-item active" data-page="home"><span class="material-symbols-rounded">home</span><span>Home</span></div>
+      <div class="nav-item" data-page="search"><span class="material-symbols-rounded">search</span><span>Search</span></div>
+      <div class="nav-item" data-page="cart"><span class="material-symbols-rounded">shopping_cart</span><span>Cart</span></div>
+      <div class="nav-item" data-page="orders"><span class="material-symbols-rounded">list_alt</span><span>Orders</span></div>
+      <div class="nav-item" data-page="profile"><span class="material-symbols-rounded">person</span><span>Profile</span></div>
+    </div>
+  </div>
+
+  <!-- Placeholders for other pages (Search, Cart, Orders, Profile) would be similar, simplified for structure -->
+</div>
+
+<script>
+  // Firebase init
+  const firebaseConfig = {
+    apiKey: "AIzaSyC7LQIiwUkr-bwIWoPkEL4J1IJLkmqIv9U",
+    authDomain: "avimart-3264c.firebaseapp.com",
+    databaseURL: "https://avimart-3264c-default-rtdb.firebaseio.com",
+    projectId: "avimart-3264c",
+    storageBucket: "avimart-3264c.firebasestorage.app",
+    messagingSenderId: "445593457856",
+    appId: "1:445593457856:web:ebc565a85c8eecf58c4925"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.database();
+
+  // ImgBB (for admin, but key available)
+  const imgbbKey = 'd168143e8512af5b9298b379acd7bd67';
+
+  // UI elements
+  const splash = document.getElementById('splash');
+  const pages = document.querySelectorAll('.page');
+  function showPage(pageId) {
+    pages.forEach(p => p.classList.remove('active'));
+    document.getElementById(pageId).classList.add('active');
+  }
+
+  // Auto close splash after 3s -> go to login if not logged in, else home
+  setTimeout(() => {
+    splash.style.display = 'none';
+    const user = auth.currentUser;
+    if (user) showPage('home-page');
+    else showPage('login-page');
+  }, 3000);
+
+  // Navigation: login / signup / forgot
+  document.getElementById('goToSignup').addEventListener('click', () => showPage('signup-page'));
+  document.getElementById('backToLogin').addEventListener('click', () => showPage('login-page'));
+  document.getElementById('goToForgot').addEventListener('click', () => showPage('forgot-page'));
+  document.getElementById('backToLoginFromForgot').addEventListener('click', () => showPage('login-page'));
+
+  // SIGNUP
+  document.getElementById('signupBtn').addEventListener('click', () => {
+    const name = document.getElementById('fullName').value;
+    const email = document.getElementById('signupEmail').value;
+    const mobile = document.getElementById('masterMobile').value;
+    const pass = document.getElementById('signupPass').value;
+    const confirm = document.getElementById('signupConfirm').value;
+    if (!name || !email || !mobile || !pass || pass !== confirm) return alert('Fill all fields and match password');
+    auth.createUserWithEmailAndPassword(email, pass).then(cred => {
+      return db.ref('users/' + cred.user.uid).set({ fullName: name, email, mobile });
+    }).then(() => { showPage('home-page'); }).catch(err => alert(err.message));
+  });
+
+  // LOGIN
+  document.getElementById('loginBtn').addEventListener('click', () => {
+    const email = document.getElementById('loginEmail').value;
+    const pass = document.getElementById('loginPass').value;
+    auth.signInWithEmailAndPassword(email, pass).then(() => showPage('home-page')).catch(err => alert(err.message));
+  });
+
+  // FORGOT PASSWORD
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    const email = document.getElementById('resetEmail').value;
+    auth.sendPasswordResetEmail(email).then(() => alert('Reset link sent')).catch(err => alert(err));
+  });
+
+  // BOTTOM NAVIGATION (mock)
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', function(e) {
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      this.classList.add('active');
+      // just visual, real pages would show different content
+    });
+  });
+
+  // Load sample products into grid (simulate)
+  function loadProducts() {
+    const grid = document.getElementById('productGrid');
+    grid.innerHTML = '';
+    for (let i=1; i<=4; i++) {
+      const card = document.createElement('div');
+      card.className = 'product-card';
+      card.innerHTML = `
+        <div class="product-image" style="background-image:url('https://via.placeholder.com/200x200/aaa/fff?text=Item${i}')"></div>
+        <div class="product-title">Sample Product ${i}</div>
+        <div class="price">₹${299+i} <span class="discount">50% off</span></div>
+        <button class="add-cart">Add to cart</button>
+        <span class="material-symbols-rounded wishlist-icon">favorite_border</span>
+      `;
+      grid.appendChild(card);
+    }
+  }
+  loadProducts();
+
+  // GPS location / map link (simulate for order)
+  function getLocationAndMap() {
+    return new Promise((res) => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+          const { latitude, longitude } = pos.coords;
+          res(`https://maps.google.com/?q=${latitude},${longitude}`);
+        }, () => res('https://maps.google.com/'));
+      } else res('https://maps.google.com/');
+    });
+  }
+
+  // Whatsapp order simulation (will open with dummy data)
+  window.placeOrder = async (product, price) => {
+    const user = auth.currentUser;
+    if (!user) return alert('login required');
+    const snap = await db.ref('users/'+user.uid).once('value');
+    const userData = snap.val() || { fullName: 'User', mobile: '' };
+    const mapLink = await getLocationAndMap();
+    const orderRef = db.ref('orders').push();
+    const orderId = orderRef.key;
+    await orderRef.set({
+      userId: user.uid,
+      product, price,
+      customerName: userData.fullName,
+      phone: userData.mobile,
+      address: 'Auto-filled from GPS',
+      mapLink,
+      status: 'placed',
+      timestamp: Date.now()
+    });
+    // open WhatsApp (admin number from settings default)
+    const settingSnap = await db.ref('settings/adminWhatsApp').once('value');
+    let adminPhone = settingSnap.val() || '919999999999'; // default
+    const msg = `Order ${orderId}: ${product} ₹${price}, Name:${userData.fullName}, Phone:${userData.mobile}, Map:${mapLink}`;
+    window.open(`https://wa.me/${adminPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
+  // Admin panel is separate admin.html, but we provide service-worker / manifest etc.
+  // PWA registration
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./service-worker.js').catch(console.log);
+  }
+
+  // manifest link
+  const linkManifest = document.createElement('link');
+  linkManifest.rel = 'manifest';
+  linkManifest.href = './manifest.json';
+  document.head.appendChild(linkManifest);
+</script>
+<!-- Service worker registration -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js').catch(err => console.log('SW err', err));
+    });
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,96 @@
+{
+  "name": "AviMart – Smart Shopping Everyday",
+  "short_name": "AviMart",
+  "description": "Smart shopping app for your daily needs. Shop electronics, fashion, home essentials and more with best deals.",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#2874F0",
+  "theme_color": "#2874F0",
+  "orientation": "portrait",
+  "scope": "/",
+  "categories": ["shopping", "lifestyle", "ecommerce"],
+  "lang": "en",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "https://i.ibb.co/F4Pf08KK/15298-removebg-preview-1.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://i.ibb.co/F4Pf08KK/15298-removebg-preview-1.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://i.ibb.co/F4Pf08KK/15298-removebg-preview-1.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://i.ibb.co/F4Pf08KK/15298-removebg-preview-1.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://i.ibb.co/F4Pf08KK/15298-removebg-preview-1.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://i.ibb.co/F4Pf08KK/15298-removebg-preview-1.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://i.ibb.co/F4Pf08KK/15298-removebg-preview-1.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://i.ibb.co/F4Pf08KK/15298-removebg-preview-1.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "splash_pages": null,
+  "prefer_related_applications": false,
+  "shortcuts": [
+    {
+      "name": "Home",
+      "short_name": "Home",
+      "description": "Go to home page",
+      "url": "/index.html#home",
+      "icons": [{ "src": "https://i.ibb.co/F4Pf08KK/15298-removebg-preview-1.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Orders",
+      "short_name": "Orders",
+      "description": "View your orders",
+      "url": "/index.html#orders",
+      "icons": [{ "src": "https://i.ibb.co/F4Pf08KK/15298-removebg-preview-1.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Cart",
+      "short_name": "Cart",
+      "description": "View your cart",
+      "url": "/index.html#cart",
+      "icons": [{ "src": "https://i.ibb.co/F4Pf08KK/15298-removebg-preview-1.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Profile",
+      "short_name": "Profile",
+      "description": "Your profile",
+      "url": "/index.html#profile",
+      "icons": [{ "src": "https://i.ibb.co/F4Pf08KK/15298-removebg-preview-1.png", "sizes": "192x192" }]
+    }
+  ]
+}
